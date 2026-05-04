@@ -1,0 +1,15 @@
+.env
+venv/
+__pycache__/
+*.pyc
+
+# Makine Öğrenimi Modelleri & Büyük Dosyalar
+models/
+*.bin
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.h5
+.cache/
+temp_audio/
