@@ -29,9 +29,9 @@ class ScamModel:
             logger.info("Model klasörü bulunamadı. Google Drive'dan indiriliyor (Bu işlem birkaç dakika sürebilir)...")
             try:
                 import gdown
-                MODEL_DIR.mkdir(parents=True, exist_ok=True)
-                # Kendi eğittiğimiz BERT modelini Drive'dan indiriyoruz
-                gdown.download_folder(id="1WxPgaTLV60XJ5dQYtDhhD25HlkjmUzEE", output=str(MODEL_DIR), quiet=False, use_cookies=False)
+                MODEL_ROOT.mkdir(parents=True, exist_ok=True)
+                # Kendi eğittiğimiz BERT modelini (zip formatında) Drive'dan indiriyoruz
+                gdown.download(id="1XFE5K8pMtarOLjPLxaxn-o7gAvTKciAt", output=str(MODEL_ZIP), quiet=False)
             except ImportError:
                 logger.warning("gdown kütüphanesi eksik. Model indirilemiyor. 'pip install gdown' çalıştırın.")
             except Exception as e:
