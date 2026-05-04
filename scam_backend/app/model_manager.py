@@ -22,6 +22,24 @@ class ScamModel:
     def _prepare_model_folder(self) -> None:
         if (MODEL_DIR / "model.safetensors").exists():
             return
+
+        if not MODEL_ZIP.exists() and not (MODEL_DIR / "model.safetensors").exists():
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info("Model klasörü bulunamadı. Google Drive'dan indiriliyor (Bu işlem birkaç dakika sürebilir)...")
+            try:
+                import gdown
+                MODEL_DIR.mkdir(parents=True, exist_ok=True)
+                # Kendi eğittiğimiz BERT modelini Drive'dan indiriyoruz
+                gdown.download_folder(id="1WxPgaTLV60XJ5dQYtDhhD25HlkjmUzEE", output=str(MODEL_DIR), quiet=False, use_cookies=False)
+            except ImportError:
+                logger.warning("gdown kütüphanesi eksik. Model indirilemiyor. 'pip install gdown' çalıştırın.")
+            except Exception as e:
+                logger.error(f"Google Drive'dan model indirilemedi: {e}")
+
+        if (MODEL_DIR / "model.safetensors").exists():
+            return
+
         if not MODEL_ZIP.exists():
             raise FileNotFoundError(
                 "Model bulunamadı. best_model_v2.zip dosyasını scam_backend/models/ içine koy."
