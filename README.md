@@ -1,96 +1,124 @@
-# SE Shield — Scam Detection App
+# SE Shield - Real-Time Scam Detection
 
-Gerçek zamanlı dolandırıcılık tespiti: BERTurk + EWMA + Whisper
+A mobile application that detects social engineering and scam calls in real time using speech recognition and NLP.
+
+## Architecture
+
+```
+Android (Kotlin / Jetpack Compose)
+    └── REST API --> FastAPI Backend
+                        ├── Whisper       (speech to text)
+                        ├── BERTurk v6   (scam classification)
+                        ├── EWMA Manager (trend analysis)
+                        └── MongoDB Atlas (storage)
+```
+
+## Features
+
+- Live microphone analysis with chunk-based processing
+- Audio file analysis (MP4, MP3, WAV, M4A)
+- EWMA trend tracking with ensemble scoring
+- Scam simulation scenarios
+- Analysis history with detailed reports
 
 ---
 
-## Kurulum
+## Setup
 
-### 1. Repoyu klonla
+### Prerequisites
+
+- Python 3.10+
+- Android Studio (Hedgehog or later)
+- Android device or emulator (API 26+)
+- MongoDB Atlas account
+
+---
+
+### Backend
+
+**1. Clone the repository**
 
 ```bash
 git clone https://github.com/fundaaaclk/ScamDetectionRealTime.git
-cd ScamDetectionRealTime
+cd ScamDetectionRealTime/scam_backend
 ```
 
----
-
-### 2. Backend Kurulumu
+**2. Create a virtual environment and install dependencies**
 
 ```bash
-cd scam_backend
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+source venv/bin/activate       # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-#### .env dosyası oluştur
+**3. Create the .env file**
 
-`scam_backend/.env` dosyası oluştur (Funda'dan al):
+Create `scam_backend/.env` with the following content (get credentials from the project owner):
 
 ```
-MONGODB_URI=mongodb+srv://...
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/
 MONGODB_DB_NAME=scam_guard_db
 ```
 
-#### Modeli indir
-
-Model otomatik olarak Google Drive'dan indirilir. İlk `python run.py` çalıştırıldığında `models/` klasörüne indirilir.
-
-Manuel indirmek istersen: `scam_backend/models/` klasörüne `berturk_scam_v6_final.zip` koy.
-
-#### Backend'i başlat
+**4. Run the backend**
 
 ```bash
 python run.py
 ```
 
-Çalıştığını kontrol et:
+The BERTurk model will be downloaded automatically from Google Drive on first run.
+To download manually, place `berturk_scam_v6_final.zip` inside `scam_backend/models/`.
+
+Verify the backend is running:
+
 ```bash
 curl http://localhost:8000/health
 ```
 
 ---
 
-### 3. Android Kurulumu
+### Android
 
-1. Android Studio'yu aç
-2. `AndroidStudioProjects/ScamDetect/` klasörünü aç
-3. `ApiService.kt` içindeki IP adresini güncelle:
+**1. Open the project in Android Studio**
+
+Open `AndroidStudioProjects/ScamDetect/` as an existing project.
+
+**2. Set the backend URL**
+
+Edit `ApiService.kt`:
 
 ```kotlin
-// Emülatör için:
+// Android emulator
 const val BASE_URL = "http://10.0.2.2:8000"
 
-// Gerçek cihaz için (Mac'in WiFi IP'si):
+// Physical device (use your machine's local IP)
 const val BASE_URL = "http://192.168.x.x:8000"
 ```
 
-4. Run butonuna bas veya terminalden:
+Make sure the device and the machine running the backend are on the same network.
+
+**3. Build and install**
+
+Via Android Studio: click Run, or from terminal:
 
 ```bash
 cd AndroidStudioProjects/ScamDetect
 ./gradlew assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.example.scamdetect/.MainActivity
 ```
 
 ---
 
-## Mimari
+## API Reference
 
-```
-Android (Kotlin/Compose)
-    └── ApiService → HTTP → FastAPI Backend
-                                ├── Whisper (ses → metin)
-                                ├── BERTurk v6 (scam sınıflandırma)
-                                ├── EWMA Manager (trend analizi)
-                                └── MongoDB Atlas (kayıt)
-```
-
-## Özellikler
-
-- **Mikrofon analizi** — Canlı ses, 3 saniyelik chunk'larla analiz
-- **Dosya analizi** — MP4, MP3, WAV, M4A desteği
-- **Simülasyon** — Hazır scam senaryoları
-- **Geçmiş** — Tüm analizler MongoDB'de saklanır
-- **EWMA + Ensemble** — Trend takibi, alarm sistemi
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /health | Health check |
+| POST | /analyze | Analyze text |
+| POST | /transcribe-file | Upload and analyze audio file |
+| POST | /transcribe-chunk | Analyze live microphone chunk |
+| POST | /microphone-session-end | Save completed session |
+| GET | /analyses | List analysis history |
+| GET | /analyses/stats | Summary statistics |
+| GET | /scenarios | List simulation scenarios |

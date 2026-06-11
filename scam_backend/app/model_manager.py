@@ -12,6 +12,24 @@ MODEL_ROOT = BASE_DIR / "models"
 MODEL_ZIP  = MODEL_ROOT / "berturk_scam_v6_final.zip"
 MODEL_DIR  = MODEL_ROOT / "berturk_scam_v6_final"
 
+GDRIVE_FILE_ID = "1QNx5t0P-Xcd1gDJBKaaEh6bnwtWIcQ11"
+
+
+def _download_model_if_needed() -> None:
+    if MODEL_ZIP.exists() or (MODEL_DIR / "model.safetensors").exists():
+        return
+    try:
+        import gdown
+        MODEL_ROOT.mkdir(parents=True, exist_ok=True)
+        print("Model not found locally. Downloading from Google Drive...")
+        gdown.download(id=GDRIVE_FILE_ID, output=str(MODEL_ZIP), quiet=False)
+        print("Download complete.")
+    except Exception as e:
+        raise RuntimeError(
+            f"Model download failed: {e}\n"
+            "Place berturk_scam_v6_final.zip manually in scam_backend/models/"
+        )
+
 LEGIT_LABEL = "legit"
 
 SUGGESTIONS: Dict[str, str] = {
@@ -68,6 +86,7 @@ class ScamModel:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def load(self) -> None:
+        _download_model_if_needed()
         self._prepare_model_folder()
 
         label_map_path = MODEL_DIR / "label_map.json"
