@@ -25,6 +25,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,7 +36,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,13 +43,18 @@ import androidx.navigation.NavController
 import com.example.scamdetect.navigation.Screen
 import com.example.scamdetect.ui.theme.CardBackground
 import com.example.scamdetect.ui.theme.CardBorder
+import com.example.scamdetect.ui.theme.DangerRed
 import com.example.scamdetect.ui.theme.PurplePrimary
-import com.example.scamdetect.ui.theme.SafeGreen
 import com.example.scamdetect.ui.theme.TextPrimary
 import com.example.scamdetect.ui.theme.TextSecondary
+import com.example.scamdetect.ui.theme.WarningYellow
+import com.example.scamdetect.ui.viewmodel.ScenarioData
+import com.example.scamdetect.ui.viewmodel.SimulationViewModel
 
 @Composable
 fun ModeSelectionScreen(navController: NavController) {
+    var selectedScenarioId by remember { mutableIntStateOf(1) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -55,7 +63,6 @@ fun ModeSelectionScreen(navController: NavController) {
     ) {
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Back button + Title
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(
                 onClick = { navController.popBackStack() },
@@ -71,9 +78,7 @@ fun ModeSelectionScreen(navController: NavController) {
                     modifier = Modifier.size(18.dp)
                 )
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column {
                 Text(
                     text = "Giriş modu seç",
@@ -91,12 +96,11 @@ fun ModeSelectionScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Hazır senaryo - RECOMMENDED (with purple glow border)
+        // Hazır senaryo — RECOMMENDED
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .drawBehind {
-                    // Purple glow shadow effect
                     drawRoundRect(
                         color = PurplePrimary.copy(alpha = 0.25f),
                         topLeft = Offset(-4f, -4f),
@@ -108,13 +112,8 @@ fun ModeSelectionScreen(navController: NavController) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(
-                        width = 1.5.dp,
-                        color = PurplePrimary,
-                        shape = RoundedCornerShape(16.dp)
-                    )
+                    .border(1.5.dp, PurplePrimary, RoundedCornerShape(16.dp))
                     .background(CardBackground, RoundedCornerShape(16.dp))
-                    .clickable { }
                     .padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -129,7 +128,7 @@ fun ModeSelectionScreen(navController: NavController) {
                         )
                         Text(
                             text = "ÖNERİLİR",
-                            color = SafeGreen,
+                            color = PurplePrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             letterSpacing = 1.sp
@@ -138,7 +137,7 @@ fun ModeSelectionScreen(navController: NavController) {
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Kayıtlı scam konuşması oynatılır, sistem analiz eder",
+                    text = "Gerçek scam konuşması oynatılır, sistem canlı analiz eder",
                     color = TextSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(start = 36.dp)
@@ -148,7 +147,6 @@ fun ModeSelectionScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Ses dosyası yükle
         ModeCard(
             icon = "📁",
             title = "Ses dosyası yükle",
@@ -158,7 +156,6 @@ fun ModeSelectionScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Mikrofon kaydı
         ModeCard(
             icon = "🎙️",
             title = "Mikrofon kaydı",
@@ -168,7 +165,6 @@ fun ModeSelectionScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // SENARYO SEÇ
         Text(
             text = "SENARYO SEÇ",
             color = TextSecondary,
@@ -178,67 +174,121 @@ fun ModeSelectionScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Scenario card with left purple bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(CardBackground, RoundedCornerShape(16.dp))
-                .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
-                .clickable { }
-        ) {
-            // Left purple vertical bar
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(72.dp)
-                    .padding(start = 0.dp)
-                    .background(
-                        PurplePrimary,
-                        RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
-                    )
+        SimulationViewModel.SCENARIOS.forEach { scenario ->
+            ScenarioCard(
+                scenario = scenario,
+                isSelected = selectedScenarioId == scenario.id,
+                onClick = { selectedScenarioId = scenario.id }
             )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Banka hesabı dondu",
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-                Text(
-                    text = "Vishing · Aciliyet yaratma",
-                    color = TextSecondary,
-                    fontSize = 13.sp
-                )
-            }
+            Spacer(modifier = Modifier.height(10.dp))
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Start button
         Button(
-            onClick = { navController.navigate(Screen.Simulation.route) },
+            onClick = {
+                navController.navigate(Screen.Simulation.createRoute(selectedScenarioId))
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
             shape = RoundedCornerShape(26.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PurplePrimary
-            )
+            colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)
         ) {
             Text(
-                "Simülasyonu başlat",
+                "Simülasyonu Başlat",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ScenarioCard(
+    scenario: ScenarioData,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val categoryColor = when (scenario.category) {
+        "banka_kart_hesap" -> DangerRed
+        "kargo_gumruk"     -> WarningYellow
+        "finans_kripto"    -> WarningYellow
+        "resmi_kurum"      -> DangerRed
+        else               -> PurplePrimary
+    }
+
+    val categoryLabel = when (scenario.category) {
+        "banka_kart_hesap" -> "Banka"
+        "kargo_gumruk"     -> "Kargo"
+        "finans_kripto"    -> "Kripto"
+        "resmi_kurum"      -> "Resmi Kurum"
+        else               -> scenario.category
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(CardBackground, RoundedCornerShape(16.dp))
+            .border(
+                width = if (isSelected) 1.5.dp else 1.dp,
+                color = if (isSelected) PurplePrimary else CardBorder,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(80.dp)
+                .background(
+                    color = categoryColor,
+                    shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = scenario.title,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                Box(
+                    modifier = Modifier
+                        .background(
+                            categoryColor.copy(alpha = 0.15f),
+                            RoundedCornerShape(6.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = categoryLabel,
+                        color = categoryColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = scenario.preview,
+                color = TextSecondary,
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+        }
     }
 }
 
@@ -253,6 +303,7 @@ private fun ModeCard(
         modifier = Modifier
             .fillMaxWidth()
             .background(CardBackground, RoundedCornerShape(16.dp))
+            .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .padding(16.dp)
     ) {

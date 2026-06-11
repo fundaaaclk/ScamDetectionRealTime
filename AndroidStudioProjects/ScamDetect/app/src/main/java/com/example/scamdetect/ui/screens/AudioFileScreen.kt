@@ -51,7 +51,7 @@ fun AudioFileScreen(
 
     // Dosya seçici — ses ve video dosyalarını kabul et
     val filePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let {
             selectedUri = it
@@ -126,7 +126,7 @@ fun AudioFileScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedButton(
-                    onClick = { filePicker.launch("audio/*") },
+                    onClick = { filePicker.launch(arrayOf("audio/*", "video/mp4", "video/m4v")) },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PurplePrimary),
                     border = androidx.compose.foundation.BorderStroke(1.dp, PurplePrimary)
@@ -286,6 +286,24 @@ private fun ResultCard(result: TranscribeResult) {
         InfoRow(label = "Scam olasılığı", value = "%$riskPercent")
         Spacer(modifier = Modifier.height(8.dp))
         InfoRow(label = "Güvenli olasılığı", value = "%${(result.safeProbability * 100).roundToInt()}")
+
+        // Öneri
+        if (result.suggestion.isNotBlank()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = CardBorder)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("ÖNERİ", color = TextSecondary, fontSize = 12.sp, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(WarningYellow.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                    .border(1.dp, WarningYellow.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            ) {
+                Text(result.suggestion, color = TextPrimary, fontSize = 14.sp, lineHeight = 22.sp)
+            }
+        }
 
         // Transcript
         if (result.transcript.isNotBlank()) {

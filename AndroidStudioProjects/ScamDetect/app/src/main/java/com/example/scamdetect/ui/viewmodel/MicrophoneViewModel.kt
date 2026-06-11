@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 private const val SAMPLE_RATE    = 16000
 private const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
@@ -23,12 +24,16 @@ private const val AUDIO_FORMAT   = AudioFormat.ENCODING_PCM_16BIT
 private const val CHUNK_SECONDS  = 3          // Her kaç saniyede chunk gönderilsin
 
 data class MicrophoneUiState(
-    val isRecording: Boolean     = false,
-    val elapsedSeconds: Int      = 0,
+    val isRecording: Boolean      = false,
+    val elapsedSeconds: Int       = 0,
     val chunks: List<ChunkResult> = emptyList(),
-    val overallRiskPercent: Int  = 0,
-    val errorMessage: String?    = null,
-    val analysisId: String?      = null
+    val overallRiskPercent: Int   = 0,
+    val finalLabel: String        = "safe",
+    val alarm: Boolean            = false,
+    val trend: String             = "insufficient_data",
+    val topSuggestion: String     = "",
+    val errorMessage: String?     = null,
+    val analysisId: String?       = null
 )
 
 class MicrophoneViewModel : ViewModel() {
@@ -39,6 +44,7 @@ class MicrophoneViewModel : ViewModel() {
     private var recordingJob: Job? = null
     private var timerJob: Job?     = null
     private var audioRecord: AudioRecord? = null
+    private var sessionId: String = UUID.randomUUID().toString()
 
     // ── Kayıt başlat ──────────────────────────────────────────────────────────
 
@@ -62,6 +68,7 @@ class MicrophoneViewModel : ViewModel() {
             minBufSize
         )
 
+        sessionId = UUID.randomUUID().toString()
         _uiState.value = MicrophoneUiState(isRecording = true)
 
         // Zamanlayıcı
@@ -98,21 +105,29 @@ class MicrophoneViewModel : ViewModel() {
                     pcmBytes[i * 2 + 1] = (sample.toInt() shr 8 and 0xFF).toByte()
                 }
 
-                runCatching {
-                    ApiService.transcribeChunk(pcmBytes, SAMPLE_RATE, chunkIndex++)
-                }.onSuccess { chunk ->
-                    if (chunk.transcript.isNotBlank()) {
-                        val newChunks = _uiState.value.chunks + chunk
-                        val maxRisk = newChunks.maxOf { (it.scamProbability * 100).toInt() }
+                // API çağrısını ayrı coroutine'e at — kayıt hiç durmasın
+                val currentIndex = chunkIndex++
+                val chunkCopy = pcmBytes.copyOf()
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching {
+                        ApiService.transcribeChunk(chunkCopy, SAMPLE_RATE, currentIndex, sessionId)
+                    }.onSuccess { chunk ->
+                        val newChunks = if (chunk.transcript.isNotBlank())
+                            _uiState.value.chunks + chunk
+                        else
+                            _uiState.value.chunks
+                        val riskiest = newChunks.maxByOrNull { it.finalScore }
                         _uiState.value = _uiState.value.copy(
                             chunks = newChunks,
-                            overallRiskPercent = maxRisk
+                            overallRiskPercent = chunk.finalScore,
+                            finalLabel = chunk.finalLabel,
+                            alarm = chunk.alarm,
+                            trend = chunk.trend,
+                            topSuggestion = riskiest?.suggestion?.takeIf { it.isNotBlank() } ?: ""
                         )
+                    }.onFailure { err ->
+                        _uiState.value = _uiState.value.copy(errorMessage = err.message)
                     }
-                }.onFailure { err ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = err.message
-                    )
                 }
             }
         }

@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.scamdetect.data.mock.MockAnalysisData
 import com.example.scamdetect.navigation.Screen
 import com.example.scamdetect.ui.components.AnalysisHistoryCard
 import com.example.scamdetect.ui.components.RiskCard
@@ -96,7 +95,21 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Yeni Analiz butonu — her zaman görünür, üstte
+        Button(
+            onClick = { navController.navigate(Screen.ModeSelection.route) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(26.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)
+        ) {
+            Text("+ Yeni Analiz Başlat", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         // GENEL DURUM
         Text(
@@ -155,7 +168,11 @@ fun HomeScreen(
                     "suspicious" -> "Şüpheli"
                     else -> "Güvenli"
                 }
-                val title = record.fileName ?: if (record.source == "microphone") "Canlı Kayıt" else "Metin Analizi"
+                val title = record.fileName ?: when (record.source) {
+                    "microphone" -> "Canlı Kayıt"
+                    "file"       -> "Ses Dosyası"
+                    else         -> "Metin Analizi"
+                }
                 val dateStr = record.createdAt.take(10) // YYYY-MM-DD
                 val durStr = record.durationSeconds?.let { "${it.toInt()}sn" } ?: "-"
 
@@ -165,28 +182,11 @@ fun HomeScreen(
                     duration = durStr,
                     riskLabel = riskLabelTr,
                     riskScore = record.riskPercent,
-                    isDangerous = record.isScam
+                    isDangerous = record.isScam,
+                    onClick = { navController.navigate(Screen.Report.createRoute(record.id)) }
                 )
                 Spacer(modifier = Modifier.height(10.dp))
             }
-        }
-
-        // Bottom button
-        Button(
-            onClick = { navController.navigate(Screen.ModeSelection.route) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(26.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PurplePrimary
-            )
-        ) {
-            Text(
-                "Yeni simülasyon başlat",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp
-            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))

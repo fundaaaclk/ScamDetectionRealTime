@@ -3,7 +3,6 @@ package com.example.scamdetect.ui.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -28,8 +27,7 @@ fun BottomNavBar(
 ) {
     val items = listOf(
         BottomNavItem("Ana", Icons.Outlined.Home, "home"),
-        BottomNavItem("Raporlar", Icons.Outlined.Assessment, "reports"),
-        BottomNavItem("Ayarlar", Icons.Outlined.Settings, "settings")
+        BottomNavItem("Raporlar", Icons.Outlined.Assessment, "reports")
     )
 
     NavigationBar(

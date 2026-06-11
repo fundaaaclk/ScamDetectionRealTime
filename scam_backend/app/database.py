@@ -47,13 +47,16 @@ def _serialize(doc: Dict) -> Dict:
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
 async def save_analysis(
-    source: str,                  # "file" | "microphone" | "text"
+    source: str,
     transcript: str,
     label: str,
     score: float,
     is_scam: bool,
     scam_probability: float,
     safe_probability: float,
+    scam_type: str = "",
+    scam_score: int = 0,
+    suggestion: str = "",
     duration_seconds: Optional[float] = None,
     file_name: Optional[str] = None,
     chunks: Optional[List[Dict]] = None,
@@ -78,6 +81,9 @@ async def save_analysis(
         "label":            label,
         "score":            score,
         "is_scam":          is_scam,
+        "scam_type":        scam_type,
+        "scam_score":       scam_score,
+        "suggestion":       suggestion,
         "scam_probability": scam_probability,
         "safe_probability": safe_probability,
         "risk_percent":     risk_percent,

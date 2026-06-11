@@ -33,10 +33,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
+import androidx.navigation.NavController
+import com.example.scamdetect.navigation.Screen
 import com.example.scamdetect.ui.viewmodel.ReportsViewModel
 
 @Composable
 fun ReportsListScreen(
+    navController: NavController,
     vm: ReportsViewModel = viewModel()
 ) {
     val uiState by vm.uiState.collectAsStateWithLifecycle()
@@ -156,7 +159,11 @@ fun ReportsListScreen(
                     "suspicious" -> "Şüpheli"
                     else -> "Güvenli"
                 }
-                val title = record.fileName ?: if (record.source == "microphone") "Canlı Kayıt" else "Metin Analizi"
+                val title = record.fileName ?: when (record.source) {
+                    "microphone" -> "Canlı Kayıt"
+                    "file"       -> "Ses Dosyası"
+                    else         -> "Metin Analizi"
+                }
                 val dateStr = record.createdAt.take(10) // YYYY-MM-DD
                 val durStr = record.durationSeconds?.let { "${it.toInt()}sn" } ?: "-"
 
@@ -166,7 +173,8 @@ fun ReportsListScreen(
                     duration = durStr,
                     riskLabel = riskLabelTr,
                     riskScore = record.riskPercent,
-                    isDangerous = record.isScam
+                    isDangerous = record.isScam,
+                    onClick = { navController.navigate(Screen.Report.createRoute(record.id)) }
                 )
                 Spacer(modifier = Modifier.height(10.dp))
             }

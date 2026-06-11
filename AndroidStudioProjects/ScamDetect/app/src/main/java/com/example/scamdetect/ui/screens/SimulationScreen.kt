@@ -1,5 +1,9 @@
 package com.example.scamdetect.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,186 +16,330 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.scamdetect.data.mock.MockAnalysisData
 import com.example.scamdetect.navigation.Screen
 import com.example.scamdetect.ui.components.CallCard
-import com.example.scamdetect.ui.components.ChunkItem
+import com.example.scamdetect.ui.theme.AppBackground
 import com.example.scamdetect.ui.theme.CardBackground
+import com.example.scamdetect.ui.theme.CardBorder
+import com.example.scamdetect.ui.theme.DangerRed
 import com.example.scamdetect.ui.theme.SafeGreen
 import com.example.scamdetect.ui.theme.TextPrimary
 import com.example.scamdetect.ui.theme.TextSecondary
+import com.example.scamdetect.ui.theme.WarningYellow
+import com.example.scamdetect.ui.viewmodel.SimLine
+import com.example.scamdetect.ui.viewmodel.SimulationViewModel
 
 @Composable
-fun SimulationScreen(navController: NavController) {
-    val result = MockAnalysisData.result
-    // İlk chunk'ı göster (simülasyon başlangıç durumu)
-    val firstChunk = result.chunks.firstOrNull()
+fun SimulationScreen(navController: NavController, scenarioId: Int) {
+    val vm: SimulationViewModel = viewModel()
+    val state by vm.uiState.collectAsState()
+    val listState = rememberLazyListState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp)
-    ) {
-        Spacer(modifier = Modifier.height(8.dp))
+    LaunchedEffect(Unit) { vm.startSimulation(scenarioId) }
 
-        // Back button + Title
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(CardBackground)
-            ) {
-                Icon(
-                    Icons.Default.ArrowBack,
-                    contentDescription = "Geri",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column {
-                Text(
-                    text = "Canlı analiz",
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
-                Text(
-                    text = "${result.scenarioName} senaryosu",
-                    color = TextSecondary,
-                    fontSize = 13.sp
-                )
-            }
+    LaunchedEffect(state.visibleLines.size) {
+        if (state.visibleLines.isNotEmpty()) {
+            listState.animateScrollToItem(state.visibleLines.lastIndex)
         }
+    }
 
-        Spacer(modifier = Modifier.height(20.dp))
+    val riskColor = when {
+        state.currentRiskPercent >= 75 -> DangerRed
+        state.currentRiskPercent >= 50 -> WarningYellow
+        else -> SafeGreen
+    }
 
-        // Scrollable content
+    val riskLabel = when (state.riskLevel) {
+        "dangerous" -> "Tehlikeli"
+        "suspicious" -> "Şüpheli"
+        else -> "Güvenli"
+    }
+
+    val elapsedFormatted = "%02d:%02d".format(
+        state.elapsedSeconds / 60, state.elapsedSeconds % 60
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // ── Ana içerik ────────────────────────────────────────────────────────
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
         ) {
-            // Call card — başlangıç durumu: ilk chunk'ın risk skoru
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = {
+                        vm.stopSimulation()
+                        navController.popBackStack()
+                    },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(CardBackground)
+                ) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Geri",
+                        tint = TextPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Simülasyon",
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                    Text(
+                        text = state.scenarioTitle,
+                        color = TextSecondary,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             CallCard(
                 callerNumber = "+90 (Bilinmeyen)",
-                status = "Kayıt oynatılıyor",
-                recordingTime = "00:03",
-                riskScore = firstChunk?.riskScore ?: 0,
-                riskLabel = when {
-                    (firstChunk?.riskScore ?: 0) >= 75 -> "Tehlikeli"
-                    (firstChunk?.riskScore ?: 0) >= 50 -> "Şüpheli"
-                    else -> "Düşük risk"
-                }
+                status = if (state.isFinished) "Görüşme tamamlandı" else "Konuşma analiz ediliyor…",
+                recordingTime = elapsedFormatted,
+                riskScore = state.currentRiskPercent,
+                riskLabel = riskLabel
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // CHUNK ANALİZİ
             Text(
-                text = "CHUNK ANALİZİ",
+                text = "KONUŞMA",
                 color = TextSecondary,
                 fontSize = 12.sp,
                 letterSpacing = 1.sp
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(state.visibleLines) { line ->
+                    ChatBubble(line)
+                }
+                item { Spacer(modifier = Modifier.height(8.dp)) }
+            }
+
+            // Risk progress bar
+            LinearProgressIndicator(
+                progress = { state.currentRiskPercent / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = riskColor,
+                trackColor = CardBorder
+            )
+
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Sadece ilk chunk gösterilir (simülasyon başlangıcı)
-            if (firstChunk != null) {
-                ChunkItem(chunk = firstChunk)
-                Spacer(modifier = Modifier.height(10.dp))
+            if (state.isFinished) {
+                Button(
+                    onClick = { navController.navigate(Screen.ModeSelection.route) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SafeGreen)
+                ) {
+                    Text(
+                        "Yeni Simülasyon →",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = AppBackground
+                    )
+                }
+            } else {
+                Button(
+                    onClick = { vm.stopSimulation() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
+                ) {
+                    Icon(
+                        Icons.Default.Phone,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Görüşmeyi Sonlandır",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Down arrow indicator
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
+        // ── Uyarı overlay ─────────────────────────────────────────────────────
+        AnimatedVisibility(
+            visible = state.showAlert,
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut()
         ) {
-            Icon(
-                Icons.Default.KeyboardArrowDown,
-                contentDescription = "Aşağı kaydır",
-                tint = TextSecondary,
-                modifier = Modifier.size(28.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.78f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 32.dp)
+                        .background(CardBackground, RoundedCornerShape(20.dp))
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = if (state.alertIsDanger) "🚨" else "⚠️",
+                        fontSize = 40.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = if (state.alertIsDanger) "TEHLİKELİ ARAMA!" else "ŞÜPHELİ KONUŞMA",
+                        color = if (state.alertIsDanger) DangerRed else WarningYellow,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = state.alertSuggestion,
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(
+                        onClick = { vm.dismissAlert() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (state.alertIsDanger) DangerRed else WarningYellow
+                        )
+                    ) {
+                        Text(
+                            "Anladım",
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (state.alertIsDanger) TextPrimary else AppBackground
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatBubble(line: SimLine) {
+    val riskColor = when {
+        line.scamScore >= 75 -> DangerRed
+        line.scamScore >= 50 -> WarningYellow
+        else -> null
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Box(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .background(
+                    color = if (riskColor != null) riskColor.copy(alpha = 0.12f) else CardBackground,
+                    shape = RoundedCornerShape(
+                        topStart = 4.dp, topEnd = 16.dp,
+                        bottomStart = 16.dp, bottomEnd = 16.dp
+                    )
+                )
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = line.text,
+                color = TextPrimary,
+                fontSize = 14.sp,
+                lineHeight = 20.sp
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Bottom buttons
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // Tekrar Oynat (green)
-            Button(
-                onClick = { navController.navigate(Screen.ModeSelection.route) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = SafeGreen
-                )
+        if (line.scamScore > 0) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 4.dp)
             ) {
-                Icon(
-                    Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+                if (riskColor != null) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = riskColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
                 Text(
-                    "Tekrar Oynat",
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
-                )
-            }
-
-            // Raporu gör (outlined)
-            OutlinedButton(
-                onClick = { navController.navigate(Screen.Report.route) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = TextPrimary
-                )
-            ) {
-                Text(
-                    "Raporu gör →",
+                    text = "%${line.scamScore} risk",
+                    color = riskColor ?: SafeGreen,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
+                if (line.scamType.isNotEmpty()) {
+                    Text(
+                        text = " · ${line.scamType.replace("_", " ")}",
+                        color = TextSecondary,
+                        fontSize = 11.sp
+                    )
+                }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }

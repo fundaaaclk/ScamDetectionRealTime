@@ -10,16 +10,19 @@ data class AnalysisStats(
 
 data class AnalysisRecord(
     val id: String,
-    val source: String,          // "file" | "microphone" | "text"
+    val source: String,
     val transcript: String,
     val label: String,
-    val score: Float,
     val isScam: Boolean,
+    val scamType: String,
+    val scamScore: Int,
+    val suggestion: String,
+    val score: Float,
     val scamProbability: Float,
     val safeProbability: Float,
     val riskPercent: Int,
-    val riskLevel: String,       // "safe" | "suspicious" | "dangerous"
+    val riskLevel: String,
     val durationSeconds: Float?,
     val fileName: String?,
-    val createdAt: String        // ISO 8601 string — UI'da formatlanır
+    val createdAt: String
 )

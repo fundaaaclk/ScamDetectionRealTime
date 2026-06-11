@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -96,15 +97,22 @@ fun MicrophoneScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        val riskLabel = when {
-            uiState.overallRiskPercent >= 75 -> "Tehlikeli"
-            uiState.overallRiskPercent >= 50 -> "Şüpheli"
-            else -> "Düşük risk"
+        val riskLabel = when (uiState.finalLabel) {
+            "dangerous"  -> "Tehlikeli"
+            "suspicious" -> "Şüpheli"
+            else         -> "Güvenli"
+        }
+
+        val trendText = when (uiState.trend) {
+            "rising"  -> "↑ Yükseliyor"
+            "falling" -> "↓ Düşüyor"
+            "stable"  -> "→ Stabil"
+            else      -> ""
         }
 
         CallCard(
-            callerNumber = "Canlı Kayıt",
-            status = if (uiState.isRecording) "🎙 Kaydediliyor" else "Durdu",
+            callerNumber = "Canlı Kayıt" + if (uiState.alarm) " 🚨" else "",
+            status = if (uiState.isRecording) "🎙 Kaydediliyor${if (trendText.isNotEmpty()) " · $trendText" else ""}" else "Durdu${if (trendText.isNotEmpty()) " · $trendText" else ""}",
             recordingTime = String.format("%02d:%02d", uiState.elapsedSeconds / 60, uiState.elapsedSeconds % 60),
             riskScore = uiState.overallRiskPercent,
             riskLabel = riskLabel
@@ -146,6 +154,36 @@ fun MicrophoneScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        if (!uiState.isRecording && uiState.topSuggestion.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(WarningYellow.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                    .border(1.dp, WarningYellow.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Text("ÖNERİ", color = TextSecondary, fontSize = 11.sp, letterSpacing = 1.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(uiState.topSuggestion, color = TextPrimary, fontSize = 13.sp, lineHeight = 20.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        if (uiState.errorMessage != null) {
+            Text(
+                text = "⚠ ${uiState.errorMessage}",
+                color = DangerRed,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DangerRed.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                    .padding(10.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),

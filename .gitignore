@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Models — Drive'da tutulacak
+scam_backend/models/
+
+# Python
+scam_backend/venv/
+scam_backend/__pycache__/
+scam_backend/app/__pycache__/
+scam_backend/*.pyc
+scam_backend/output.txt
+
+# Secrets
+scam_backend/.env
+
+# Android build outputs
+AndroidStudioProjects/ScamDetect/.gradle/
+AndroidStudioProjects/ScamDetect/build/
+AndroidStudioProjects/ScamDetect/app/build/
+AndroidStudioProjects/ScamDetect/local.properties
+
+# Zip dosyaları
+*.zip

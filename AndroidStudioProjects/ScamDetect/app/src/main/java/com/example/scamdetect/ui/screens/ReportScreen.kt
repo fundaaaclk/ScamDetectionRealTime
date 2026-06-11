@@ -33,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.scamdetect.data.mock.MockAnalysisData
 import com.example.scamdetect.navigation.Screen
 import com.example.scamdetect.ui.components.AttackTag
 import com.example.scamdetect.ui.components.RiskAlertCard
@@ -177,6 +176,32 @@ fun ReportScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // SUGGESTION
+                if (record.suggestion.isNotBlank()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(WarningYellow.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                            .border(1.dp, WarningYellow.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "ÖNERİ",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = record.suggestion,
+                            color = TextPrimary,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
                 // TRANSCRIPT
                 Column(

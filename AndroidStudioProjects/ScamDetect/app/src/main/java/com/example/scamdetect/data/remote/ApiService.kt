@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 object ApiClient {
     // Emülatörde backend'e ulaşmak için 10.0.2.2 kullanılır.
     // Gerçek cihazda Mac'in yerel IP adresini gir (örn. "192.168.1.X").
-    const val BASE_URL = "http://10.0.2.2:8000"
+    const val BASE_URL = "http://192.168.1.110:8000"
 
     val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -28,6 +28,33 @@ object ApiClient {
 }
 
 object ApiService {
+
+    // ── Metin analizi → /analyze ──────────────────────────────────────────────
+
+    suspend fun analyzeText(text: String, chunkIndex: Int = 0): ChunkResult {
+        val json = JSONObject().apply { put("text", text) }
+        val body = json.toString().toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url("${ApiClient.BASE_URL}/analyze")
+            .post(body)
+            .build()
+        val response = ApiClient.http.newCall(request).execute()
+        val responseBody = response.body?.string() ?: throw RuntimeException("Boş yanıt")
+        if (!response.isSuccessful) throw RuntimeException("Sunucu hatası ${response.code}: $responseBody")
+        val result = JSONObject(responseBody)
+        return ChunkResult(
+            chunkIndex      = chunkIndex,
+            transcript      = text,
+            label           = result.optString("label", "legit"),
+            isScam          = result.optBoolean("is_scam", false),
+            scamType        = result.optString("scam_type", ""),
+            scamScore       = result.optInt("scam_score", 0),
+            score           = result.optDouble("score", 0.0).toFloat(),
+            scamProbability = result.optDouble("scam_probability", 0.0).toFloat(),
+            safeProbability = result.optDouble("safe_probability", 1.0).toFloat(),
+            suggestion      = result.optString("suggestion", "")
+        )
+    }
 
     // ── Ses dosyası → /transcribe-file ───────────────────────────────────────
 
@@ -73,7 +100,8 @@ object ApiService {
     suspend fun transcribeChunk(
         audioBytes: ByteArray,
         sampleRate: Int,
-        chunkIndex: Int
+        chunkIndex: Int,
+        sessionId: String
     ): ChunkResult {
         val base64Audio = Base64.encodeToString(audioBytes, Base64.NO_WRAP)
 
@@ -81,6 +109,7 @@ object ApiService {
             put("audio_base64", base64Audio)
             put("sample_rate", sampleRate)
             put("chunk_index", chunkIndex)
+            put("session_id", sessionId)
         }
 
         val body = json.toString().toRequestBody("application/json".toMediaType())
@@ -110,10 +139,10 @@ object ApiService {
                 put("chunk_index", c.chunkIndex)
                 put("transcript", c.transcript)
                 put("label", c.label)
-                put("score", c.score)
+                put("score", c.score.toDouble())
                 put("is_scam", c.isScam)
-                put("scam_probability", c.scamProbability)
-                put("safe_probability", c.safeProbability)
+                put("scam_probability", c.scamProbability.toDouble())
+                put("safe_probability", c.safeProbability.toDouble())
             }
             chunksArray.put(obj)
         }
@@ -125,9 +154,9 @@ object ApiService {
         val json = JSONObject().apply {
             put("chunks", chunksArray)
             put("overall_transcript", overallTranscript)
-            put("overall_scam_probability", overallScamProb)
-            put("overall_safe_probability", overallSafeProb)
-            put("duration_seconds", durationSeconds)
+            put("overall_scam_probability", overallScamProb.toDouble())
+            put("overall_safe_probability", overallSafeProb.toDouble())
+            put("duration_seconds", durationSeconds.toDouble())
         }
 
         val body = json.toString().toRequestBody("application/json".toMediaType())
@@ -201,11 +230,14 @@ object ApiService {
     private fun parseTranscribeResult(json: JSONObject) = TranscribeResult(
         analysisId      = json.optString("analysis_id").takeIf { it.isNotBlank() },
         transcript      = json.optString("transcript", ""),
-        label           = json.optString("label", "safe"),
-        score           = json.optDouble("score", 0.0).toFloat(),
+        label           = json.optString("label", "legit"),
         isScam          = json.optBoolean("is_scam", false),
+        scamType        = json.optString("scam_type", ""),
+        scamScore       = json.optInt("scam_score", 0),
+        score           = json.optDouble("score", 0.0).toFloat(),
         scamProbability = json.optDouble("scam_probability", 0.0).toFloat(),
         safeProbability = json.optDouble("safe_probability", 1.0).toFloat(),
+        suggestion      = json.optString("suggestion", ""),
         durationSeconds = if (json.isNull("duration_seconds")) null
                           else json.optDouble("duration_seconds").toFloat()
     )
@@ -213,11 +245,19 @@ object ApiService {
     private fun parseChunkResult(json: JSONObject) = ChunkResult(
         chunkIndex      = json.optInt("chunk_index", 0),
         transcript      = json.optString("transcript", ""),
-        label           = json.optString("label", "safe"),
-        score           = json.optDouble("score", 0.0).toFloat(),
+        label           = json.optString("label", "legit"),
         isScam          = json.optBoolean("is_scam", false),
+        scamType        = json.optString("scam_type", ""),
+        scamScore       = json.optInt("scam_score", 0),
+        score           = json.optDouble("score", 0.0).toFloat(),
         scamProbability = json.optDouble("scam_probability", 0.0).toFloat(),
-        safeProbability = json.optDouble("safe_probability", 1.0).toFloat()
+        safeProbability = json.optDouble("safe_probability", 1.0).toFloat(),
+        suggestion      = json.optString("suggestion", ""),
+        ewmaScore       = json.optInt("ewma_score", 0),
+        trend           = json.optString("trend", "insufficient_data"),
+        alarm           = json.optBoolean("alarm", false),
+        finalScore      = json.optInt("final_score", 0),
+        finalLabel      = json.optString("final_label", "safe")
     )
 
     private fun parseStats(json: JSONObject) = AnalysisStats(
@@ -232,16 +272,19 @@ object ApiService {
         id              = json.optString("id", ""),
         source          = json.optString("source", "file"),
         transcript      = json.optString("transcript", ""),
-        label           = json.optString("label", "safe"),
-        score           = json.optDouble("score", 0.0).toFloat(),
+        label           = json.optString("label", "legit"),
         isScam          = json.optBoolean("is_scam", false),
+        scamType        = json.optString("scam_type", ""),
+        scamScore       = json.optInt("scam_score", 0),
+        suggestion      = json.optString("suggestion", ""),
+        score           = json.optDouble("score", 0.0).toFloat(),
         scamProbability = json.optDouble("scam_probability", 0.0).toFloat(),
         safeProbability = json.optDouble("safe_probability", 1.0).toFloat(),
         riskPercent     = json.optInt("risk_percent", 0),
         riskLevel       = json.optString("risk_level", "safe"),
         durationSeconds = if (json.isNull("duration_seconds")) null
                           else json.optDouble("duration_seconds").toFloat(),
-        fileName        = json.optString("file_name").takeIf { it.isNotBlank() },
+        fileName        = if (json.isNull("file_name")) null else json.optString("file_name").takeIf { it.isNotBlank() },
         createdAt       = json.optString("created_at", "")
     )
 }

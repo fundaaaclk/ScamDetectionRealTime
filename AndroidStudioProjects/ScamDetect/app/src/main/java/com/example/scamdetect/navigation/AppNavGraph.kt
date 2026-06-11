@@ -26,7 +26,6 @@ import com.example.scamdetect.ui.screens.HomeScreen
 import com.example.scamdetect.ui.screens.ModeSelectionScreen
 import com.example.scamdetect.ui.screens.ReportScreen
 import com.example.scamdetect.ui.screens.ReportsListScreen
-import com.example.scamdetect.ui.screens.SettingsScreen
 import com.example.scamdetect.ui.screens.SimulationScreen
 import com.example.scamdetect.ui.screens.AudioFileScreen
 import com.example.scamdetect.ui.screens.MicrophoneScreen
@@ -37,7 +36,9 @@ import com.example.scamdetect.ui.theme.TextSecondary
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object ModeSelection : Screen("mode_selection")
-    data object Simulation : Screen("simulation")
+    data object Simulation : Screen("simulation/{scenarioId}") {
+        fun createRoute(scenarioId: Int) = "simulation/$scenarioId"
+    }
     data object AudioFile : Screen("audio_file")
     data object Microphone : Screen("microphone")
     data object Report : Screen("report/{analysisId}") {
@@ -52,7 +53,7 @@ fun AppNavGraph() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
 
-    val showBottomBar = currentRoute in listOf("home", "reports", "settings")
+    val showBottomBar = currentRoute in listOf("home", "reports")
 
     Scaffold(
         topBar = {
@@ -108,8 +109,12 @@ fun AppNavGraph() {
                 ModeSelectionScreen(navController)
             }
 
-            composable(Screen.Simulation.route) {
-                SimulationScreen(navController)
+            composable(
+                route = Screen.Simulation.route,
+                arguments = listOf(navArgument("scenarioId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val scenarioId = backStackEntry.arguments?.getInt("scenarioId") ?: 1
+                SimulationScreen(navController, scenarioId)
             }
 
             composable(Screen.AudioFile.route) {
@@ -129,12 +134,9 @@ fun AppNavGraph() {
             }
 
             composable("reports") {
-                ReportsListScreen()
+                ReportsListScreen(navController)
             }
 
-            composable("settings") {
-                SettingsScreen()
-            }
         }
     }
 }
