@@ -202,7 +202,7 @@ fun ReportsListScreen(
                 fontSize = 28.sp
             )
             Text(
-                text = "Son 5 analiz ortalaması",
+                text = "Son analizler ortalaması",
                 color = TextSecondary,
                 fontSize = 12.sp
             )

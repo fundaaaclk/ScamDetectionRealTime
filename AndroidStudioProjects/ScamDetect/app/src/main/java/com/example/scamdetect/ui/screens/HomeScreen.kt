@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -75,7 +74,8 @@ fun HomeScreen(
                     .background(PurplePrimary),
                 contentAlignment = Alignment.Center
             ) {
-                Text("🛡", fontSize = 20.sp)
+                Text("SE", color = androidx.compose.ui.graphics.Color.White,
+                    fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
 
             Spacer(modifier = Modifier.width(12.dp))

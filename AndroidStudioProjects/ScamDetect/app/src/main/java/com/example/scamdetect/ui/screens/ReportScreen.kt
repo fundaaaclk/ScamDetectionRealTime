@@ -139,7 +139,11 @@ fun ReportScreen(
                             .padding(20.dp)
                     ) {
                         Text(
-                            text = "${record.riskPercent}%",
+                            text = when {
+                                record.riskPercent >= 75 -> "Tehlikeli"
+                                record.riskPercent >= 40 -> "Şüpheli"
+                                else -> "Güvenli"
+                            },
                             color = if (record.riskPercent >= 75) DangerRed else if (record.riskPercent >= 40) WarningYellow else SafeGreen,
                             fontWeight = FontWeight.Bold,
                             fontSize = 32.sp
@@ -263,7 +267,7 @@ fun ReportScreen(
             )
         ) {
             Text(
-                "Yeni simülasyon başlat",
+                "Yeni Analiz Başlat",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp
             )

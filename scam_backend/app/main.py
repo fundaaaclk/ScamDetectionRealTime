@@ -16,8 +16,6 @@ from app.schemas import (
     AnalyzeResponse,
     AnalysisListResponse,
     AnalysisRecord,
-    ReportRequest,
-    ReportResponse,
     Scenario,
     StatsResponse,
     TranscribeChunkRequest,
@@ -100,10 +98,14 @@ async def test_ewma(request: EWMATestRequest):
         "scam_score":  prediction["scam_score"],
         "scam_type":   prediction["scam_type"],
         "is_scam":     prediction["is_scam"],
+        "suggestion":  prediction["suggestion"],
+        "label":       prediction["label"],
         "ewma_score":  ewma_result["ewma_score"],
         "trend":       ewma_result["trend"],
         "alarm":       ewma_result["alarm"],
         "chunk_count": ewma_result["chunk_count"],
+        "final_score": ewma_result["final_score"],
+        "final_label": ewma_result["final_label"],
         "ewma_series": ewma_result["ewma_values"],
         "score_series":ewma_result["raw_scores"],
     }
@@ -179,59 +181,7 @@ def get_scenarios():
         },
     ]
 
-# ── Rapor ─────────────────────────────────────────────────────────────────────
-
-@app.post("/reports", response_model=ReportResponse)
-def create_report(request: ReportRequest):
-    return {"status": "success", "message": "Rapor alındı."}
-
-# ── Ses dosyası yükle → transcribe → analiz → kaydet ─────────────────────────
-
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".mp4", ".m4a", ".ogg", ".flac", ".webm"}
-
-
-# ── EWMA Test endpoint'i (ses olmadan metin ile test) ─────────────────────────
-
-class EWMATestRequest(BaseModel):
-    text: str
-    chunk_index: int = 0
-    session_id: str = "test"
-
-class EWMAResetRequest(BaseModel):
-    session_id: str = "test"
-
-@app.post("/test-ewma")
-async def test_ewma(request: EWMATestRequest):
-    """Ses olmadan metin ile EWMA test endpoint'i."""
-    prediction = scam_model.predict(request.text)
-    ewma_result = ewma_manager.add_chunk(
-        session_id=request.session_id,
-        chunk_index=request.chunk_index,
-        scam_score=prediction["scam_score"],
-    )
-    return {
-        "text":        request.text,
-        "scam_score":  prediction["scam_score"],
-        "scam_type":   prediction["scam_type"],
-        "is_scam":     prediction["is_scam"],
-        "ewma_score":  ewma_result["ewma_score"],
-        "trend":       ewma_result["trend"],
-        "alarm":       ewma_result["alarm"],
-        "chunk_count": ewma_result["chunk_count"],
-        "final_score": ewma_result["final_score"],
-        "final_label": ewma_result["final_label"],
-        "ewma_series": ewma_result["ewma_values"],
-        "score_series":ewma_result["raw_scores"],
-    }
-
-@app.post("/test-ewma/reset")
-async def test_ewma_reset(request: EWMAResetRequest):
-    ewma_manager.clear_session(request.session_id)
-    return {"status": "ok", "session_id": request.session_id}
-
-@app.get("/test-ewma/summary/{session_id}")
-async def test_ewma_summary(session_id: str):
-    return ewma_manager.get_summary(session_id)
 
 @app.post("/transcribe-file", response_model=TranscribeFileResponse)
 async def transcribe_file(file: UploadFile = File(...)):

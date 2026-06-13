@@ -111,7 +111,7 @@ fun MicrophoneScreen(
         }
 
         CallCard(
-            callerNumber = "Canlı Kayıt" + if (uiState.alarm) " 🚨" else "",
+            callerNumber = "Canlı Kayıt",
             status = if (uiState.isRecording) "🎙 Kaydediliyor${if (trendText.isNotEmpty()) " · $trendText" else ""}" else "Durdu${if (trendText.isNotEmpty()) " · $trendText" else ""}",
             recordingTime = String.format("%02d:%02d", uiState.elapsedSeconds / 60, uiState.elapsedSeconds % 60),
             riskScore = uiState.overallRiskPercent,
@@ -155,7 +155,7 @@ fun MicrophoneScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (!uiState.isRecording && uiState.topSuggestion.isNotBlank()) {
+        if (uiState.topSuggestion.isNotBlank()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

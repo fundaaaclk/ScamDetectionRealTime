@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 object ApiClient {
     // Emülatörde backend'e ulaşmak için 10.0.2.2 kullanılır.
     // Gerçek cihazda Mac'in yerel IP adresini gir (örn. "192.168.1.X").
-    const val BASE_URL = "http://192.168.1.110:8000"
+    const val BASE_URL = "http://172.20.10.3:8000"
 
     val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -31,28 +31,42 @@ object ApiService {
 
     // ── Metin analizi → /analyze ──────────────────────────────────────────────
 
-    suspend fun analyzeText(text: String, chunkIndex: Int = 0): ChunkResult {
-        val json = JSONObject().apply { put("text", text) }
+    suspend fun analyzeText(text: String, chunkIndex: Int = 0, sessionId: String = "default"): ChunkResult {
+        val json = JSONObject().apply {
+            put("text", text)
+            put("chunk_index", chunkIndex)
+            put("session_id", sessionId)
+        }
         val body = json.toString().toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
-            .url("${ApiClient.BASE_URL}/analyze")
+            .url("${ApiClient.BASE_URL}/test-ewma")
             .post(body)
             .build()
         val response = ApiClient.http.newCall(request).execute()
         val responseBody = response.body?.string() ?: throw RuntimeException("Boş yanıt")
         if (!response.isSuccessful) throw RuntimeException("Sunucu hatası ${response.code}: $responseBody")
         val result = JSONObject(responseBody)
+        val scamScore = result.optInt("scam_score", 0)
         return ChunkResult(
             chunkIndex      = chunkIndex,
             transcript      = text,
-            label           = result.optString("label", "legit"),
+            label           = result.optString("scam_type", "legit").ifBlank { "legit" },
             isScam          = result.optBoolean("is_scam", false),
             scamType        = result.optString("scam_type", ""),
-            scamScore       = result.optInt("scam_score", 0),
-            score           = result.optDouble("score", 0.0).toFloat(),
-            scamProbability = result.optDouble("scam_probability", 0.0).toFloat(),
-            safeProbability = result.optDouble("safe_probability", 1.0).toFloat(),
-            suggestion      = result.optString("suggestion", "")
+            scamScore       = scamScore,
+            score           = scamScore / 100f,
+            scamProbability = scamScore / 100f,
+            safeProbability = 1f - scamScore / 100f,
+            suggestion      = result.optString("suggestion", ""),
+            ewmaScore       = result.optInt("ewma_score", 0),
+            trend           = result.optString("trend", "insufficient_data"),
+            alarm           = result.optBoolean("alarm", false),
+            finalScore      = result.optInt("ewma_score", 0),
+            finalLabel      = when {
+                result.optInt("ewma_score", 0) >= 70 -> "dangerous"
+                result.optInt("ewma_score", 0) >= 40 -> "suspicious"
+                else -> "safe"
+            }
         )
     }
 

@@ -117,13 +117,17 @@ class MicrophoneViewModel : ViewModel() {
                         else
                             _uiState.value.chunks
                         val riskiest = newChunks.maxByOrNull { it.finalScore }
+                        val bestSuggestion = newChunks
+                            .filter { it.suggestion.isNotBlank() }
+                            .maxByOrNull { it.finalScore }
+                            ?.suggestion ?: ""
                         _uiState.value = _uiState.value.copy(
                             chunks = newChunks,
                             overallRiskPercent = chunk.finalScore,
                             finalLabel = chunk.finalLabel,
                             alarm = chunk.alarm,
                             trend = chunk.trend,
-                            topSuggestion = riskiest?.suggestion?.takeIf { it.isNotBlank() } ?: ""
+                            topSuggestion = bestSuggestion
                         )
                     }.onFailure { err ->
                         _uiState.value = _uiState.value.copy(errorMessage = err.message)

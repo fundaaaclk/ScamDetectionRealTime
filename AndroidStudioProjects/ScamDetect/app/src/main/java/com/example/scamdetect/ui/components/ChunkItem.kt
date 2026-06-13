@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.scamdetect.data.model.AnalysisChunk
 import com.example.scamdetect.ui.theme.*
 
@@ -43,9 +44,10 @@ fun ChunkItem(chunk: AnalysisChunk) {
             )
 
             Text(
-                text = "%${chunk.riskScore}",
+                text = chunk.label,
                 color = riskColor,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
             )
         }
 
@@ -60,9 +62,5 @@ fun ChunkItem(chunk: AnalysisChunk) {
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        Text(
-            text = chunk.label,
-            color = riskColor
-        )
     }
 }

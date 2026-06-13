@@ -245,12 +245,12 @@ private fun ResultCard(result: TranscribeResult) {
         ) {
             Column {
                 Text(
-                    text = "%$riskPercent",
+                    text = riskLabel,
                     color = riskColor,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 40.sp
+                    fontSize = 32.sp
                 )
-                Text("Risk skoru", color = TextSecondary, fontSize = 13.sp)
+                Text("Risk seviyesi", color = TextSecondary, fontSize = 13.sp)
             }
             Box(
                 modifier = Modifier
@@ -283,9 +283,7 @@ private fun ResultCard(result: TranscribeResult) {
         }
 
         // Olasılıklar
-        InfoRow(label = "Scam olasılığı", value = "%$riskPercent")
-        Spacer(modifier = Modifier.height(8.dp))
-        InfoRow(label = "Güvenli olasılığı", value = "%${(result.safeProbability * 100).roundToInt()}")
+        InfoRow(label = "Sonuç", value = if (result.isScam) "Dolandırıcılık tespit edildi" else "Güvenli görünüyor")
 
         // Öneri
         if (result.suggestion.isNotBlank()) {

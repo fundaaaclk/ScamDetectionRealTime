@@ -125,7 +125,7 @@ fun CallCard(
                 fontSize = 13.sp
             )
             Text(
-                text = "%$riskScore",
+                text = riskLabel,
                 color = riskColor,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp

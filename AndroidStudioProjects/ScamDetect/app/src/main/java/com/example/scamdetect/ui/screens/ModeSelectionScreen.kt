@@ -19,6 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -36,6 +39,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -117,7 +121,12 @@ fun ModeSelectionScreen(navController: NavController) {
                     .padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🎭", fontSize = 24.sp)
+                    Icon(
+                        Icons.Outlined.PlayCircle,
+                        contentDescription = null,
+                        tint = PurplePrimary,
+                        modifier = Modifier.size(24.dp)
+                    )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
@@ -127,7 +136,7 @@ fun ModeSelectionScreen(navController: NavController) {
                             fontSize = 16.sp
                         )
                         Text(
-                            text = "ÖNERİLİR",
+                            text = "ONERILIR",
                             color = PurplePrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
@@ -148,7 +157,7 @@ fun ModeSelectionScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(12.dp))
 
         ModeCard(
-            icon = "📁",
+            icon = Icons.Outlined.AudioFile,
             title = "Ses dosyası yükle",
             subtitle = ".mp3 / .wav — kendi kaydınızı analiz edin",
             onClick = { navController.navigate("audio_file") }
@@ -157,7 +166,7 @@ fun ModeSelectionScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(12.dp))
 
         ModeCard(
-            icon = "🎙️",
+            icon = Icons.Outlined.Mic,
             title = "Mikrofon kaydı",
             subtitle = "Anlık konuşma kaydı ve canlı analiz",
             onClick = { navController.navigate("microphone") }
@@ -294,7 +303,7 @@ private fun ScenarioCard(
 
 @Composable
 private fun ModeCard(
-    icon: String,
+    icon: ImageVector,
     title: String,
     subtitle: String,
     onClick: () -> Unit = {}
@@ -308,7 +317,12 @@ private fun ModeCard(
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(icon, fontSize = 24.sp)
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(22.dp)
+            )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = title,
@@ -322,7 +336,7 @@ private fun ModeCard(
             text = subtitle,
             color = TextSecondary,
             fontSize = 13.sp,
-            modifier = Modifier.padding(start = 36.dp)
+            modifier = Modifier.padding(start = 34.dp)
         )
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -51,6 +52,7 @@ import com.example.scamdetect.ui.theme.AppBackground
 import com.example.scamdetect.ui.theme.CardBackground
 import com.example.scamdetect.ui.theme.CardBorder
 import com.example.scamdetect.ui.theme.DangerRed
+import com.example.scamdetect.ui.theme.PurplePrimary
 import com.example.scamdetect.ui.theme.SafeGreen
 import com.example.scamdetect.ui.theme.TextPrimary
 import com.example.scamdetect.ui.theme.TextSecondary
@@ -63,8 +65,9 @@ fun SimulationScreen(navController: NavController, scenarioId: Int) {
     val vm: SimulationViewModel = viewModel()
     val state by vm.uiState.collectAsState()
     val listState = rememberLazyListState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-    LaunchedEffect(Unit) { vm.startSimulation(scenarioId) }
+    LaunchedEffect(Unit) { vm.startSimulation(scenarioId, context) }
 
     LaunchedEffect(state.visibleLines.size) {
         if (state.visibleLines.isNotEmpty()) {
@@ -193,12 +196,26 @@ fun SimulationScreen(navController: NavController, scenarioId: Int) {
                         color = AppBackground
                     )
                 }
+            } else if (state.isRecordingUser) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .background(PurplePrimary.copy(alpha = 0.15f), RoundedCornerShape(26.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Mic, contentDescription = null,
+                            tint = PurplePrimary, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Dinleniyor...", color = PurplePrimary,
+                            fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    }
+                }
             } else {
                 Button(
                     onClick = { vm.stopSimulation() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(26.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
                 ) {
@@ -208,11 +225,7 @@ fun SimulationScreen(navController: NavController, scenarioId: Int) {
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Görüşmeyi Sonlandır",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
-                    )
+                    Text("Görüşmeyi Sonlandır", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 }
             }
 
@@ -239,15 +252,16 @@ fun SimulationScreen(navController: NavController, scenarioId: Int) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = if (state.alertIsDanger) "🚨" else "⚠️",
-                        fontSize = 40.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = if (state.alertIsDanger) "TEHLİKELİ ARAMA!" else "ŞÜPHELİ KONUŞMA",
+                        text = if (state.alertIsDanger) "TEHLİKELİ ARAMA" else "ŞÜPHELI KONUŞMA",
                         color = if (state.alertIsDanger) DangerRed else WarningYellow,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Bu konuşma dolandırıcılık olabilir!",
+                        color = TextSecondary,
+                        fontSize = 13.sp
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -281,6 +295,7 @@ fun SimulationScreen(navController: NavController, scenarioId: Int) {
 
 @Composable
 private fun ChatBubble(line: SimLine) {
+    val isUser = line.speaker == "user"
     val riskColor = when {
         line.scamScore >= 75 -> DangerRed
         line.scamScore >= 50 -> WarningYellow
@@ -289,17 +304,19 @@ private fun ChatBubble(line: SimLine) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.Start
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
                 .background(
-                    color = if (riskColor != null) riskColor.copy(alpha = 0.12f) else CardBackground,
-                    shape = RoundedCornerShape(
-                        topStart = 4.dp, topEnd = 16.dp,
-                        bottomStart = 16.dp, bottomEnd = 16.dp
-                    )
+                    color = if (isUser) PurplePrimary.copy(alpha = 0.2f)
+                            else if (riskColor != null) riskColor.copy(alpha = 0.12f)
+                            else CardBackground,
+                    shape = if (isUser)
+                        RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+                    else
+                        RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
                 )
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
@@ -311,7 +328,7 @@ private fun ChatBubble(line: SimLine) {
             )
         }
 
-        if (line.scamScore > 0) {
+        if (!isUser && line.scamScore > 0) {
             Spacer(modifier = Modifier.height(4.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,

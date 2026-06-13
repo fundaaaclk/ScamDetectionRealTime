@@ -75,7 +75,7 @@ fun AnalysisHistoryCard(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "● $riskLabel — %$riskScore risk",
+            text = "● $riskLabel",
             color = badgeColor,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
